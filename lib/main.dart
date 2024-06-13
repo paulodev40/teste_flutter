@@ -1,125 +1,244 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Lista de Compras',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Projeto Inicial'),
+      home: ShoppingListsPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class ShoppingListsPage extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ShoppingListsPageState createState() => _ShoppingListsPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _ShoppingListsPageState extends State<ShoppingListsPage> {
+  final List<Map<String, dynamic>> _shoppingLists = [];
 
-  void _incrementCounter() {
+  void _addShoppingList(String listName) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _shoppingLists.add({'name': listName, 'items': []});
     });
+  }
+
+  void _navigateToAddList(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddListPage(
+          onAddList: _addShoppingList,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAddItems(BuildContext context, int index) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddItemsPage(
+          shoppingList: _shoppingLists[index],
+          onUpdateList: (updatedList) {
+            setState(() {
+              _shoppingLists[index] = updatedList;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  double _calculateTotal(Map<String, dynamic> shoppingList) {
+    double total = 0.0;
+    for (var item in shoppingList['items']) {
+      total += item['price'];
+    }
+    return total;
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('Listas de Compras'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Vai apertando ooooo botão',
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Insira uma nova lista',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+                FloatingActionButton(
+                  onPressed: () => _navigateToAddList(context),
+                  child: Icon(Icons.add),
+                ),
+              ],
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _shoppingLists.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(_shoppingLists[index]['name']),
+                  subtitle: Text('Total: \$${_calculateTotal(_shoppingLists[index]).toStringAsFixed(2)}'),
+                  onTap: () => _navigateToAddItems(context, index),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AddListPage extends StatefulWidget {
+  final Function(String) onAddList;
+
+  AddListPage({required this.onAddList});
+
+  @override
+  _AddListPageState createState() => _AddListPageState();
+}
+
+class _AddListPageState extends State<AddListPage> {
+  final TextEditingController _controller = TextEditingController();
+
+  void _submit() {
+    if (_controller.text.isNotEmpty) {
+      widget.onAddList(_controller.text);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Cadastrar Lista'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _controller,
+              decoration: InputDecoration(labelText: 'Nome da Lista'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _submit,
+              child: Text('Cadastrar'),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class AddItemsPage extends StatefulWidget {
+  final Map<String, dynamic> shoppingList;
+  final Function(Map<String, dynamic>) onUpdateList;
+
+  AddItemsPage({required this.shoppingList, required this.onUpdateList});
+
+  @override
+  _AddItemsPageState createState() => _AddItemsPageState();
+}
+
+class _AddItemsPageState extends State<AddItemsPage> {
+  final TextEditingController _itemController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+
+  void _addItem() {
+    if (_itemController.text.isNotEmpty && _priceController.text.isNotEmpty) {
+      setState(() {
+        widget.shoppingList['items'].add({
+          'item': _itemController.text,
+          'price': double.tryParse(_priceController.text) ?? 0.0,
+        });
+        _itemController.clear();
+        _priceController.clear();
+      });
+    }
+  }
+
+  double _calculateTotal() {
+    double total = 0.0;
+    for (var item in widget.shoppingList['items']) {
+      total += item['price'];
+    }
+    return total;
+  }
+
+  void _saveList() {
+    widget.onUpdateList(widget.shoppingList);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Adicionar Itens'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _itemController,
+              decoration: InputDecoration(labelText: 'Item'),
+            ),
+            TextField(
+              controller: _priceController,
+              decoration: InputDecoration(labelText: 'Preço'),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _addItem,
+              child: Text('Adicionar Item'),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.shoppingList['items'].length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(widget.shoppingList['items'][index]['item']),
+                    subtitle: Text(
+                        'Preço: \$${widget.shoppingList['items'][index]['price'].toStringAsFixed(2)}'),
+                  );
+                },
+              ),
+            ),
+            Text(
+              'Total: \$${_calculateTotal().toStringAsFixed(2)}',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            ElevatedButton(
+              onPressed: _saveList,
+              child: Text('Salvar Lista'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
